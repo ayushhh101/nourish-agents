@@ -23,8 +23,10 @@ def _trim_to_seven_days(meal_plan: Dict) -> Dict:
             if not isinstance(d, dict):
                 continue
             day_name = d.get("day")
-            if isinstance(day_name, str) and day_name in VALID_DAYS and day_name not in first_seen:
-                first_seen[day_name] = d
+            if isinstance(day_name, str):
+                day_name = day_name.capitalize()  # <-- convert 'monday' -> 'Monday'
+                if day_name in VALID_DAYS and day_name not in first_seen:
+                    first_seen[day_name] = d
 
         # Order by canonical weekdays and strictly cap to 7
         ordered_days = [first_seen[d] for d in VALID_DAYS if d in first_seen][:7]
@@ -77,6 +79,7 @@ Rules:
 
     try:
         response = llm_structured.invoke(formatted_prompt)
+        print("LLM structured response:", response)
         data = response if isinstance(response, dict) else dict(response)
         return _trim_to_seven_days(data)
     except Exception:
