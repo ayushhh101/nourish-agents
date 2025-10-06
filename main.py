@@ -69,4 +69,5 @@ async def find_restaurants(request: RestaurantRequest):
         location=request.location,
         cuisines=request.cuisines
     )
-    return restaurant_context
+    return restaurant_context.get("restaurants",{"restaurants":[]})
+   
