@@ -4,7 +4,7 @@ from typing import List, Literal, TypedDict, Dict, Any
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 # ---- Set Gemini API key manually (consider env var in production) ----
-API_KEY = "AIzaSyAgxSTK353KHYVshnaJtITos0nqqQqRBhM"
+API_KEY = "AIzaSyDeDsvKpnwpXhWD5oOdhthCZmD3PsmXXl4"
 os.environ["GEMINI_API_KEY"] = API_KEY
 
 # -------- Structured output schemas (TypedDicts) --------
@@ -37,6 +37,12 @@ class MealOption(TypedDict):
 class MealPlanResponse(TypedDict):
     meal_plan_options: List[MealOption]
 
+class InsightResponse(TypedDict):
+    """The structured output for a user insight."""
+    title: str
+    positive_feedback: str
+    actionable_recommendation: str
+
 # -------- Create LangChain LLM with structured outputs --------
 # Method json_mode uses Gemini responseSchema under the hood to force JSON
 llm_base = ChatGoogleGenerativeAI(
@@ -49,4 +55,9 @@ llm_base = ChatGoogleGenerativeAI(
 llm_structured = llm_base.with_structured_output(
     schema=MealPlanResponse,  # Pydantic or TypedDict-like schema
     method="json_mode",       # Gemini native structured output
+)
+
+llm_structured_insight = llm_base.with_structured_output(
+    schema=InsightResponse,
+    method="json_mode",
 )

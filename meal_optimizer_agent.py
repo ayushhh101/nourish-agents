@@ -1,6 +1,7 @@
 # meal_optimizer_agent.py
 import json
 import requests
+import urllib.parse
 from typing import Dict, List
 from langchain.prompts import PromptTemplate
 from llm_main import llm_structured
@@ -11,6 +12,16 @@ VALID_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sun
 # API Configuration (choose one)
 UNSPLASH_ACCESS_KEY = "qbf2kqYke18O6b-YxcRJNz8aa0KQrtYGicHihvyW49A"  # Get from https://unsplash.com/developers
 PEXELS_API_KEY = "igvWvmGGYhqTqB2dLgFCisHeazMmgWPUPoAzfdIYfMoP0cZIErbPUzl3"  # Get from https://www.pexels.com/api/
+
+
+def generate_youtube_search_url(recipe_name: str) -> str:
+    """
+    Generate a YouTube search URL for a given recipe name.
+    """
+    # Clean up the recipe name and encode it for URL
+    search_query = f"{recipe_name} recipe"
+    encoded_query = urllib.parse.quote_plus(search_query)
+    return f"https://www.youtube.com/results?search_query={encoded_query}"
 
 
 def fetch_food_image(food_name: str, api_choice: str = "unsplash") -> str:
@@ -60,7 +71,7 @@ def fetch_food_image(food_name: str, api_choice: str = "unsplash") -> str:
 
 def add_images_to_meals(meal_plan: Dict, api_choice: str = "unsplash") -> Dict:
     """
-    Add image URLs to each meal in the meal plan.
+    Add image URLs and YouTube search URLs to each meal in the meal plan.
     """
     for option in meal_plan.get("meal_plan_options", []):
         for day in option.get("days", []):
@@ -73,6 +84,9 @@ def add_images_to_meals(meal_plan: Dict, api_choice: str = "unsplash") -> Dict:
                     # Fetch image for this meal
                     image_url = fetch_food_image(meal["name"], api_choice)
                     meal["image_url"] = image_url if image_url else ""
+                    
+                    # Generate YouTube search URL
+                    meal["youtube_link"] = generate_youtube_search_url(meal["name"])
                     
     return meal_plan
 
@@ -137,11 +151,12 @@ Rules:
    - Calories
    - Macronutrients (protein, carbs, fat) as numbers
    - Full ingredient list (quantities and units)
-   - A valid YouTube link
+   - A YouTube search URL in the format: https://www.youtube.com/results?search_query=RECIPE_NAME+recipe (replace spaces with +)
 4. Avoid restricted or allergen ingredients.
 5. Make sure the meals are mix of easy-to-cook and moderately complex recipes and according to the preferences. They should be familiar to Indian diet and should amaze the user.
 6. Do NOT generate any shopping list.
 7. Return strictly valid JSON matching the bound schema.
+8. For youtube_link, use actual YouTube search URLs like: https://www.youtube.com/results?search_query=Keto+Coconut+Flour+Idli+recipe
 """
     prompt = PromptTemplate(
         input_variables=["cuisines", "goals", "allergies", "dietaryRestrictions"],

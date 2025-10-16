@@ -1,6 +1,6 @@
 # main.py - Fixed API Server with CORS support
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any, Dict, List
@@ -9,7 +9,8 @@ from typing import Any, Dict, List
 from orchestrator_agent import (
     orchestrate_meal_plan,
     orchestrate_day_shopping_list,
-    orchestrate_restaurants
+    orchestrate_restaurants,
+    orchestrate_insight
 )
 
 app = FastAPI()
@@ -38,6 +39,18 @@ class RestaurantRequest(BaseModel):
     location: Dict[str, float]  # e.g., {"lat": 18.9323, "lng": 72.8316}
     cuisines: List[str] = []
 
+class CompletedMeal(BaseModel):
+    name: str
+    calories: float
+    protein: float
+    carbs: float
+    fat: float
+    ingredients: List[str]
+
+
+class InsightRequest(BaseModel):
+    userProfile: UserProfile
+    completedMeals: List[CompletedMeal]
 
 # --- API Endpoints ---
 
@@ -71,3 +84,23 @@ async def find_restaurants(request: RestaurantRequest):
     )
     return restaurant_context.get("restaurants",{"restaurants":[]})
    
+@app.post("/generate-insight")
+async def generate_insight_route(request: InsightRequest):
+    try:
+        # Convert Pydantic models to standard Python dicts for the agent
+        user_profile_dict = request.userProfile.dict()
+        completed_meals_dicts = [meal.dict() for meal in request.completedMeals]
+
+        # Call the orchestrator
+        result = orchestrate_insight(
+            context={},
+            user_profile=user_profile_dict,
+            completed_meals=completed_meals_dicts
+        )
+        
+        # Return the insight object from the result
+        return result.get("insight", {"success": False, "insight": "Failed to process insight."})
+
+    except Exception as e:
+        print(f"Error in /generate-insight endpoint: {e}")
+        raise HTTPException(status_code=500, detail="An error occurred while generating the insight.")

@@ -2,6 +2,7 @@
 from meal_optimizer_agent import generate_meal_plan
 from shopping_list_agent import generate_day_shopping_list
 from restaurant_agent import get_nearby_restaurants  # Free OSM/Overpass-backed agent
+from insights_agent import generate_insight
 
 def orchestrate_meal_plan(user_profile: dict, include_shopping_list: bool = False) -> dict:
     """
@@ -21,17 +22,27 @@ def orchestrate_day_shopping_list(context: dict, option_index: int, day_name: st
     shopping = generate_day_shopping_list(meal_plans, option_index, day_name)
     return {"meal_plans": meal_plans, "shopping_list": shopping}
 
-def orchestrate_restaurants(context: dict, location: dict, cuisines: list = None, radius_m: int = 2000, limit: int = 30) -> dict:
+def orchestrate_restaurants(context: dict, location: dict, cuisines: list = None, radius_m: int = 3000, limit: int = 7) -> dict:
     """
-    Suggest nearby restaurants for the user by location and cuisine filters (free Overpass/OSM).
-    location: {"lat": float, "lng": float}
-    cuisines: ["Indian","Chinese"] etc. Optional; filters OSM cuisine tags.
+    Suggest nearby restaurants using Swiggy's live API
+    location: {"lat": float, "lng": float} from browser geolocation
+    cuisines: User preference cuisines for ranking
+    Returns top 6-7 restaurants by default
     """
     lat = float(location.get("lat"))
     lng = float(location.get("lng"))
     recs = get_nearby_restaurants(lat, lng, cuisines or [], radius_m=radius_m, limit=limit)
     new_ctx = dict(context or {})
     new_ctx["restaurants"] = recs
+    return new_ctx
+
+def orchestrate_insight(context: dict, user_profile: dict, completed_meals: list) -> dict:
+    """
+    Generates a smart insight based on the user's profile and their history of completed meals.
+    """
+    insight_result = generate_insight(user_profile, completed_meals)
+    new_ctx = dict(context or {})
+    new_ctx["insight"] = insight_result
     return new_ctx
 
 if __name__ == "__main__":
